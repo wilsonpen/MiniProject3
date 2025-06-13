@@ -1,7 +1,7 @@
 package com.ziven0069.miniproject3.network
 
-import com.ziven0069.mobpro1.model.Hewan
-import com.ziven0069.mobpro1.model.OpStatus
+import com.ziven0069.miniproject3.model.Hewan
+import com.ziven0069.miniproject3.model.OpStatus
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.MultipartBody

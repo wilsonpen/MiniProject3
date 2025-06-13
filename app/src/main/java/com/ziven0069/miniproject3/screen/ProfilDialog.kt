@@ -27,10 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.ziven0069.miniproject3.model.User
 import com.ziven0069.miniproject3.ui.theme.MiniProject3Theme
-import com.ziven0069.mobpro1.R
-import com.ziven0069.mobpro1.model.User
-import com.ziven0069.mobpro1.ui.theme.Mobpro1Theme
+import com.ziven0069.miniproject3.R
 
 @Composable
 fun ProfilDialog(

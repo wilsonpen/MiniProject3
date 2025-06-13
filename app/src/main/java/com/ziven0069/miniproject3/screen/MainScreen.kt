@@ -81,7 +81,6 @@ import com.ziven0069.miniproject3.network.ApiStatus
 import com.ziven0069.miniproject3.network.HewanApi
 import com.ziven0069.miniproject3.network.UserDataStore
 import com.ziven0069.miniproject3.ui.theme.MiniProject3Theme
-import com.ziven0069.miniproject3.ui.theme.Mobpro1Theme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
