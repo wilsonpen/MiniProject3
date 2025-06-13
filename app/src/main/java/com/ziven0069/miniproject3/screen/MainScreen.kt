@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.os.Build
 import android.provider.MediaStore
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -26,6 +28,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -84,6 +88,12 @@ import com.ziven0069.miniproject3.ui.theme.MiniProject3Theme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -343,8 +353,17 @@ private fun getCroppedImage(
 @Composable
 fun ListItem(
     hewan: Hewan,
-    onDeleteClick: (() -> Unit)? = null
+    onDeleteClick: (() -> Unit)? = null,
+    onEditClick: (() -> Unit)? = null // Tambahkan callback untuk edit
 ) {
+
+    var showEditPlantDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    val viewModel: MainViewModel = viewModel()
+
+    val bitmap = rememberBitmapFromUrl(HewanApi.getHewanUrl(hewan.imageId))
+
     Box(
         modifier = Modifier
             .padding(4.dp)
@@ -389,24 +408,98 @@ fun ListItem(
                 )
             }
 
-            if (onDeleteClick != null) {
-                IconButton(
-                    onClick = onDeleteClick,
+            if (hewan.mine == 1) {
+                Row(
                     modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .size(32.dp)
+                        .fillMaxWidth()
+                        .background(Color.Black.copy(alpha = 0.4f))
+                        .padding(end = 8.dp, top = 4.dp, bottom = 4.dp),
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = stringResource(R.string.hapus),
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    IconButton(
+                        onClick = { showEditPlantDialog = true },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Film",
+                            tint = Color.White
+                        )
+                    }
+                    IconButton(
+                        onClick = { showDeleteDialog  = true },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Hapus Film",
+                            tint = Color.White
+                        )
+                    }
                 }
             }
+
+            if (showEditPlantDialog) {
+                UpdateDialog(
+                    bitmap = bitmap,
+                    currentNama = hewan.nama,
+                    currentNamaLatin = hewan.namaLatin,
+                    onDismissRequest = { showEditPlantDialog = false },
+                    onConfirmation = { newNama, newNamaLatin ->
+                        // TODO: lakukan update data ke ViewModel / API di sini
+                        showEditPlantDialog = false
+                    }
+                )
+            }
+
+
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog = false },
+                    title = { Text(text = "Konfirmasi Hapus") },
+                    text = { Text(text = "Apakah Anda yakin ingin menghapus film ini?") },
+                    confirmButton = {
+                        Button(onClick = {
+                            showDeleteDialog = false
+//                            onDelete(reviewFilm.id)
+                        }) {
+                            Text(text = "Ya")
+                        }
+                    },
+                    dismissButton = {
+                        Button(onClick = { showDeleteDialog = false }) {
+                            Text(text = "Tidak")
+                        }
+                    }
+                )
+            }
+
+
         }
     }
 }
+
+@Composable
+fun rememberBitmapFromUrl(url: String): Bitmap? {
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    LaunchedEffect(url) {
+        withContext(Dispatchers.IO) {
+            try {
+                val connection = URL(url).openConnection() as HttpURLConnection
+                connection.doInput = true
+                connection.connect()
+                val input: InputStream = connection.inputStream
+                bitmap = BitmapFactory.decodeStream(input)
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+     return bitmap
+}
+
 
 @Preview(showBackground = true)
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
