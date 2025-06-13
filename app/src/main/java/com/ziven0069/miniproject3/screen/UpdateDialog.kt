@@ -24,12 +24,12 @@ import com.ziven0069.miniproject3.R
 
 @Composable
 fun UpdateDialog(
-    bitmap: Bitmap?, // Gambar saat ini (bisa null)
+    bitmap: Bitmap?,
     currentNama: String,
     currentNamaLatin: String,
     onDismissRequest: () -> Unit,
-    onConfirmation: (String, String) -> Unit,
-    onImageEditClick: (() -> Unit)? = null
+    onConfirmation: (newNama: String, newNamaLatin: String, newBitmap: Bitmap) -> Unit,
+    onImageEditClick: () -> Unit // now required
 ) {
     var nama by remember { mutableStateOf(currentNama) }
     var namaLatin by remember { mutableStateOf(currentNamaLatin) }
@@ -43,7 +43,6 @@ fun UpdateDialog(
                 modifier = Modifier.padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -55,10 +54,8 @@ fun UpdateDialog(
                             contentDescription = null,
                             modifier = Modifier.matchParentSize()
                         )
-
-                        // Icon edit di pojok kanan atas
                         IconButton(
-                            onClick = onImageEditClick ?: {},
+                            onClick = onImageEditClick,
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .padding(8.dp)
@@ -70,7 +67,6 @@ fun UpdateDialog(
                                 tint = MaterialTheme.colorScheme.onPrimary
                             )
                         }
-
                     } else {
                         Text(
                             text = stringResource(id = R.string.try_again),
@@ -88,7 +84,9 @@ fun UpdateDialog(
                         capitalization = KeyboardCapitalization.Words,
                         imeAction = ImeAction.Next
                     ),
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = namaLatin,
@@ -99,7 +97,9 @@ fun UpdateDialog(
                         capitalization = KeyboardCapitalization.Words,
                         imeAction = ImeAction.Done
                     ),
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .fillMaxWidth()
                 )
 
                 Row(
@@ -117,9 +117,11 @@ fun UpdateDialog(
 
                     OutlinedButton(
                         onClick = {
-                            onConfirmation(nama, namaLatin)
+                            if (bitmap != null) {
+                                onConfirmation(nama, namaLatin, bitmap)
+                            }
                         },
-                        enabled = nama.isNotBlank() && namaLatin.isNotBlank(),
+                        enabled = nama.isNotBlank() && namaLatin.isNotBlank() && bitmap != null,
                         modifier = Modifier.padding(8.dp)
                     ) {
                         Text(text = stringResource(R.string.simpan))
@@ -129,6 +131,9 @@ fun UpdateDialog(
         }
     }
 }
+
+
+
 
 @Preview(showBackground = true)
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
@@ -140,7 +145,8 @@ fun UpdateDialogPreview() {
             currentNama = "Nama",
             currentNamaLatin = "Nama Latin",
             onDismissRequest = {},
-            onConfirmation = { _, _ -> }
+            onConfirmation = { _, _, _ -> },
+            onImageEditClick = TODO()
         )
     }
 }

@@ -22,9 +22,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.ziven0069.miniproject3.ui.theme.MiniProject3Theme
 import com.ziven0069.miniproject3.R
+import com.ziven0069.miniproject3.model.Tanaman
 
 @Composable
-fun HewanDialog(
+fun TanamanDialog(
     bitmap: Bitmap?,
     onDismissRequest: () -> Unit,
     onConfirmation: (String, String) -> Unit
@@ -101,7 +102,7 @@ fun HewanDialog(
 @Composable
 fun AddDialogPreview() {
     MiniProject3Theme {
-        HewanDialog(
+        TanamanDialog(
             bitmap = null,
             onDismissRequest = {},
             onConfirmation = { _, _ -> }

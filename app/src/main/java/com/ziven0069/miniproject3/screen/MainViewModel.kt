@@ -5,9 +5,9 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ziven0069.miniproject3.model.Hewan
+import com.ziven0069.miniproject3.model.Tanaman
 import com.ziven0069.miniproject3.network.ApiStatus
-import com.ziven0069.miniproject3.network.HewanApi
+import com.ziven0069.miniproject3.network.TanamanApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -17,7 +17,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 
 class MainViewModel: ViewModel() {
-    var data = mutableStateOf(emptyList<Hewan>())
+    var data = mutableStateOf(emptyList<Tanaman>())
         private set
     var status = MutableStateFlow(ApiStatus.LOADING)
         private set
@@ -30,7 +30,7 @@ class MainViewModel: ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             status.value = ApiStatus.LOADING
             try {
-                data.value = HewanApi.service.getHewan(userId)
+                data.value = TanamanApi.service.getTanaman(userId)
                 status.value = ApiStatus.SUCCESS
             } catch (e: Exception) {
                 Log.d("MainViewModel", "Failure: ${e.message}")
@@ -39,12 +39,12 @@ class MainViewModel: ViewModel() {
         }
     }
 
-    fun saveData(userId: String, nama: String, namaLatin: String, bitmap: Bitmap) {
+    fun saveData(userId: String, nama_tanaman: String, namaLatin: String, bitmap: Bitmap) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = HewanApi.service.postHewan(
+                val result = TanamanApi.service.postTanaman(
                     userId,
-                    nama.toRequestBody("text/plain".toMediaTypeOrNull()),
+                    nama_tanaman.toRequestBody("text/plain".toMediaTypeOrNull()),
                     namaLatin.toRequestBody("text/plain".toMediaTypeOrNull()),
                     bitmap.toMultipartBody()
                 )
@@ -60,10 +60,34 @@ class MainViewModel: ViewModel() {
         }
     }
 
-    fun deleteData(userId: String, hewanId: String) {
+
+        fun updateData(userId: String, nama_tanaman: String, namaLatin: String, bitmap: Bitmap, id : String) {
+            Log.d("MainViewModel", "UserId : $userId , $nama_tanaman $namaLatin $id");
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val result = TanamanApi.service.updateTanaman(
+                        userId,
+                        nama_tanaman.toRequestBody("text/plain".toMediaTypeOrNull()),
+                        namaLatin.toRequestBody("text/plain".toMediaTypeOrNull()),
+                        bitmap.toMultipartBody(),
+                        id
+                    )
+
+                    if (result.status == "success")
+                        retrieveData(userId)
+                    else
+                        throw Exception(result.message)
+                } catch (e: Exception) {
+                    Log.d("MainViewModel", "Failure: ${e.message}")
+                    errorMessage.value = "Error: ${e.message}"
+                }
+            }
+        }
+
+    fun deleteData(userId: String, tanamanId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = HewanApi.service.deleteHewan(userId, hewanId)
+                val result = TanamanApi.service.deleteTanaman(userId, tanamanId)
                 if (result.status == "success") {
                     retrieveData(userId)
                 } else {
@@ -87,7 +111,7 @@ class MainViewModel: ViewModel() {
         val requestBody = byteArray.toRequestBody(
             "image/jpg".toMediaTypeOrNull(), 0, byteArray.size)
         return MultipartBody.Part.createFormData(
-            "image", "image.jpg", requestBody)
+            "gambar", "image.jpg", requestBody)
     }
 
     fun clearMessage() {

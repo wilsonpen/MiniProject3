@@ -6,21 +6,21 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.ziven0069.miniproject3.R
-import com.ziven0069.miniproject3.model.Hewan
+import com.ziven0069.miniproject3.model.Tanaman
 
 @Composable
 fun DeleteConfirmDialog(
-    hewan: Hewan,
+    tanaman: Tanaman,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(text = stringResource(R.string.hapus_hewan_title))
+            Text(text = stringResource(R.string.hapus_tanaman_title))
         },
         text = {
-            Text(text = stringResource(R.string.hapus_hewan_body, hewan.nama))
+            Text(text = stringResource(R.string.hapus_tanaman_body, tanaman.nama_tanaman))
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {

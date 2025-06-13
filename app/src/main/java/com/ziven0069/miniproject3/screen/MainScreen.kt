@@ -11,6 +11,7 @@ import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -79,10 +80,10 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.ziven0069.miniproject3.BuildConfig
 import com.ziven0069.miniproject3.R
-import com.ziven0069.miniproject3.model.Hewan
+import com.ziven0069.miniproject3.model.Tanaman
 import com.ziven0069.miniproject3.model.User
 import com.ziven0069.miniproject3.network.ApiStatus
-import com.ziven0069.miniproject3.network.HewanApi
+import com.ziven0069.miniproject3.network.TanamanApi
 import com.ziven0069.miniproject3.network.UserDataStore
 import com.ziven0069.miniproject3.ui.theme.MiniProject3Theme
 import kotlinx.coroutines.CoroutineScope
@@ -105,16 +106,16 @@ fun MainScreen() {
     val errorMessage by viewModel.errorMessage
 
     var showDialog by remember { mutableStateOf(false) }
-    var showHewanDialog by remember { mutableStateOf(false) }
+    var showTanamanDialog by remember { mutableStateOf(false) }
 
     var bitmap: Bitmap? by remember { mutableStateOf(null) }
     val launcher = rememberLauncherForActivityResult(CropImageContract()) {
         bitmap = getCroppedImage(context.contentResolver, it)
-        if (bitmap != null) showHewanDialog = true
+        if (bitmap != null) showTanamanDialog = true
     }
     val deleteStatus by viewModel.deleteStatus
     var showDeleteDialog by remember { mutableStateOf(false) }
-    var selectedHewan by remember { mutableStateOf<Hewan?>(null) }
+    var selectedTanaman by remember { mutableStateOf<Tanaman?>(null) }
     LaunchedEffect(deleteStatus) {
         if (deleteStatus != null) {
             Toast.makeText(context, deleteStatus, Toast.LENGTH_SHORT).show()
@@ -154,23 +155,26 @@ fun MainScreen() {
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                val options = CropImageContractOptions(
-                    null,
-                    CropImageOptions(
-                        imageSourceIncludeGallery = false,
-                        imageSourceIncludeCamera = true,
-                        fixAspectRatio = true
+            if (user.email.isNotEmpty()){
+                FloatingActionButton(onClick = {
+                    val options = CropImageContractOptions(
+                        null,
+                        CropImageOptions(
+                            imageSourceIncludeGallery = true,
+                            imageSourceIncludeCamera = true,
+                            fixAspectRatio = true
+                        )
                     )
-                )
 
-                launcher.launch(options)
-            }) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(id = R.string.tambah_hewan)
-                )
+                    launcher.launch(options)
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(id = R.string.tambah_tanaman)
+                    )
+                }
             }
+
         }
     ){
             innerPadding ->
@@ -178,8 +182,8 @@ fun MainScreen() {
             viewModel,
             userId = user.email,
             modifier = Modifier.padding(innerPadding),
-            onDeleteClick = { hewan ->
-                selectedHewan = hewan
+            onDeleteClick = { tanaman ->
+                selectedTanaman = tanaman
                 showDeleteDialog = true
             }
         )
@@ -194,25 +198,25 @@ fun MainScreen() {
                 showDialog = false
             }
         }
-        if (showHewanDialog) {
-            HewanDialog(
+        if (showTanamanDialog) {
+            TanamanDialog(
                 bitmap = bitmap,
-                onDismissRequest = { showHewanDialog = false }) { nama, namaLatin ->
+                onDismissRequest = { showTanamanDialog = false }) { nama, namaLatin ->
                 viewModel.saveData(user.email, nama, namaLatin, bitmap!!)
-                showHewanDialog = false
+                showTanamanDialog = false
             }
         }
-        if (showDeleteDialog && selectedHewan != null) {
+        if (showDeleteDialog && selectedTanaman != null) {
             DeleteConfirmDialog(
-                hewan = selectedHewan!!,
+                tanaman = selectedTanaman!!,
                 onDismiss = {
                     showDeleteDialog = false
-                    selectedHewan = null
+                    selectedTanaman = null
                 },
                 onConfirm = {
-                    viewModel.deleteData(user.email, selectedHewan!!.id)
+                    viewModel.deleteData(user.email, selectedTanaman!!.id)
                     showDeleteDialog = false
-                    selectedHewan = null
+                    selectedTanaman = null
                 }
             )
         }
@@ -224,7 +228,7 @@ fun MainScreen() {
 }
 
 @Composable
-fun ScreenContent(viewModel: MainViewModel, userId: String, onDeleteClick: (Hewan) -> Unit, modifier: Modifier = Modifier) {
+fun ScreenContent(viewModel: MainViewModel, userId: String, onDeleteClick: (Tanaman) -> Unit, modifier: Modifier = Modifier) {
     val data by viewModel.data
     val status by viewModel.status.collectAsState()
 
@@ -249,10 +253,11 @@ fun ScreenContent(viewModel: MainViewModel, userId: String, onDeleteClick: (Hewa
             ) {
                 items(data) {
                     ListItem(
-                        hewan = it,
+                        tanaman = it,
                         onDeleteClick = if (it.mine == 1) {
                             { onDeleteClick(it) }
-                        } else null
+                        } else null,
+                        userId = userId
                     )
                 }
             }
@@ -352,18 +357,34 @@ private fun getCroppedImage(
 
 @Composable
 fun ListItem(
-    hewan: Hewan,
-    onDeleteClick: (() -> Unit)? = null,
-    onEditClick: (() -> Unit)? = null // Tambahkan callback untuk edit
+    tanaman: Tanaman,
+    userId: String, // Tambahkan userId sebagai parameter
+    onDeleteClick: (() -> Unit)? = null
 ) {
-
+    // State untuk dialog edit, state dialog hapus dihilangkan
     var showEditPlantDialog by remember { mutableStateOf(false) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
 
+    // Dapatkan instance ViewModel
     val viewModel: MainViewModel = viewModel()
 
-    val bitmap = rememberBitmapFromUrl(HewanApi.getHewanUrl(hewan.imageId))
+    // Ambil bitmap dari URL untuk dialog edit
+    val bitmap = rememberBitmapFromUrl(TanamanApi.getTanamanUrl(tanaman.gambar))
+    val context = LocalContext.current
+    var bitmapa by remember { mutableStateOf<Bitmap?>(null) }
 
+    // Load gambar awal dari URL
+    LaunchedEffect(tanaman.gambar) {
+        bitmapa = loadBitmapFromUrl(TanamanApi.getTanamanUrl(tanaman.gambar))
+    }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            val stream = context.contentResolver.openInputStream(it)
+            bitmapa = BitmapFactory.decodeStream(stream)
+        }
+    }
     Box(
         modifier = Modifier
             .padding(4.dp)
@@ -372,12 +393,10 @@ fun ListItem(
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(
-                    HewanApi.getHewanUrl(hewan.imageId)
-                )
-                .crossfade(enable = true)
+                .data(TanamanApi.getTanamanUrl(tanaman.gambar))
+                .crossfade(true)
                 .build(),
-            contentDescription = stringResource(R.string.gambar, hewan.nama),
+            contentDescription = stringResource(R.string.gambar, tanaman.nama_tanaman),
             contentScale = ContentScale.Crop,
             placeholder = painterResource(id = R.drawable.loading_img),
             error = painterResource(id = R.drawable.broken_img),
@@ -396,23 +415,23 @@ fun ListItem(
                 modifier = Modifier.align(Alignment.CenterStart)
             ) {
                 Text(
-                    text = hewan.nama,
+                    text = tanaman.nama_tanaman,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
+                // Perbaikan: Tampilkan nama latin, bukan nama tanaman lagi
                 Text(
-                    text = hewan.namaLatin,
+                    text = tanaman.nama_latin,
                     fontStyle = FontStyle.Italic,
                     fontSize = 14.sp,
                     color = Color.White
                 )
             }
 
-            if (hewan.mine == 1) {
+            if (tanaman.mine == 1) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.Black.copy(alpha = 0.4f))
                         .padding(end = 8.dp, top = 4.dp, bottom = 4.dp),
                     horizontalArrangement = Arrangement.End
                 ) {
@@ -422,62 +441,53 @@ fun ListItem(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Film",
+                            contentDescription = "Edit Tanaman",
                             tint = Color.White
                         )
                     }
                     IconButton(
-                        onClick = { showDeleteDialog  = true },
+                        // Perbaikan: Panggil callback onDeleteClick langsung
+                        onClick = { onDeleteClick?.invoke() },
                         modifier = Modifier.size(36.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Hapus Film",
+                            contentDescription = "Hapus Tanaman",
                             tint = Color.White
                         )
                     }
                 }
             }
 
+
             if (showEditPlantDialog) {
                 UpdateDialog(
-                    bitmap = bitmap,
-                    currentNama = hewan.nama,
-                    currentNamaLatin = hewan.namaLatin,
+                    bitmap = bitmapa,
+                    currentNama = tanaman.nama_tanaman,
+                    currentNamaLatin = tanaman.nama_latin,
                     onDismissRequest = { showEditPlantDialog = false },
-                    onConfirmation = { newNama, newNamaLatin ->
-                        // TODO: lakukan update data ke ViewModel / API di sini
+                    onConfirmation = { newNama, newNamaLatin, newBitmap ->
+                        viewModel.updateData(userId, newNama, newNamaLatin, newBitmap, tanaman.id)
                         showEditPlantDialog = false
-                    }
-                )
-            }
-
-
-            if (showDeleteDialog) {
-                AlertDialog(
-                    onDismissRequest = { showDeleteDialog = false },
-                    title = { Text(text = "Konfirmasi Hapus") },
-                    text = { Text(text = "Apakah Anda yakin ingin menghapus film ini?") },
-                    confirmButton = {
-                        Button(onClick = {
-                            showDeleteDialog = false
-//                            onDelete(reviewFilm.id)
-                        }) {
-                            Text(text = "Ya")
-                        }
                     },
-                    dismissButton = {
-                        Button(onClick = { showDeleteDialog = false }) {
-                            Text(text = "Tidak")
-                        }
+                    onImageEditClick = {
+                        launcher.launch("image/*")
                     }
                 )
             }
-
-
         }
     }
 }
+
+suspend fun loadBitmapFromUrl(url: String): Bitmap? = withContext(Dispatchers.IO) {
+    try {
+        val input = URL(url).openStream()
+        BitmapFactory.decodeStream(input)
+    } catch (e: Exception) {
+        null
+    }
+}
+
 
 @Composable
 fun rememberBitmapFromUrl(url: String): Bitmap? {
